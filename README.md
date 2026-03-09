@@ -1,2 +1,120 @@
-# netexec-automator
-Blast credentials across all 10 NetExec protocols in parallel — live hits, auto-skip timeouts, clean summaries. Built for fast iterative pentesting.
+# NetExec Automator
+
+**NetExec Automator** takes your targets, users, and passwords (single values or files) and blasts them across all 10 nxc protocols in parallel — with local auth variants included. You get live hits as they come in, automatic timeout skipping, and a clean summary at the end.
+
+![NetExec Automator Demo](assets/netexec-automator-demo.gif)
+
+**Workflow: find creds → add to lists → re-scan → repeat.**
+
+```bash
+# Initial scan with known creds
+python3 netexec-automator.py -t targets.txt -u users.txt -p passwords.txt
+
+# Found svc_backup:Summer2025! in a config file? Add it and re-scan
+echo 'svc_backup' >> users.txt
+echo 'Summer2025!' >> passwords.txt
+python3 netexec-automator.py -t targets.txt -u users.txt -p passwords.txt
+
+# Got a new subnet? Add those targets and go again
+echo '10.10.20.0/24' >> targets.txt
+python3 netexec-automator.py -t targets.txt -u users.txt -p passwords.txt
+```
+
+## Features
+
+- **10 protocols** — SMB, SSH, LDAP, FTP, WMI, WinRM, RDP, VNC, MSSQL, NFS
+- **Local auth variants** — Automatically tests `--local-auth` for SMB, WMI, WinRM, RDP, MSSQL
+- **Parallel execution** — 15 concurrent workers by default (one per protocol/auth-type)
+- **Live findings** — Valid credentials (`⚡`) and timeout skips (`⏱`) printed in real-time
+- **Auto-skip** — Protocols that timeout consecutively are skipped to save time
+- **Clean output** — Parsed nxc output, grouped by protocol, with a final credential summary
+- **Progress bar** — Real-time tracking per individual nxc command
+- **File input** — Accepts single values or newline-separated files for targets, users, and passwords
+
+## Requirements
+
+- Python 3.10+
+- [NetExec](https://github.com/Pennyw0rth/NetExec) installed and available as `nxc` in PATH
+
+## Usage
+
+```bash
+# Single target, single credential
+python3 netexec-automator.py -t 10.10.10.1 -u admin -p 'Password123!'
+
+# File-based inputs — the intended workflow
+python3 netexec-automator.py -t targets.txt -u users.txt -p passwords.txt
+
+# Custom output file and worker count
+python3 netexec-automator.py -t 10.10.10.1 -u admin -p pass.txt -o results.txt -w 20
+```
+
+## Options
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `-t, --target` | Target IP/hostname or path to targets file | *required* |
+| `-u, --user` | Username or path to users file | *required* |
+| `-p, --password` | Password or path to passwords file | *required* |
+| `-o, --output` | Custom log file path | `HH-MM-SS-mmm.txt` |
+| `-w, --workers` | Number of parallel threads | `15` |
+
+## Output
+
+The tool produces three sections:
+
+### 1. Live Scan
+
+Findings appear in real-time as protocols are tested:
+
+```
+  ► 10.10.10.1
+
+  ⚡ SMB (domain) corp.local\admin:Password123!
+  ⚡ LDAP (domain) corp.local\admin:Password123!
+  ⏱ SSH (domain) 2 consecutive timeouts — skipping
+```
+
+### 2. Detailed Results
+
+After scanning completes, all results are shown grouped by protocol:
+
+```
+────────────────────────────────────────────────────────────
+  📋 NetExec Automator Results
+────────────────────────────────────────────────────────────
+    Windows 10 / Server 2019 Build 17763 x64 (name:DC01) (domain:corp.local)
+
+  ✔ SMB (domain)         corp.local\admin:Password123!
+  ✘ SMB (local)          DC01\admin:Password123! STATUS_LOGON_FAILURE
+  ✔ LDAP (domain)        corp.local\admin:Password123!
+  ⏱ SSH (domain)         2 consecutive timeouts — skipped
+
+  ── No response: FTP, VNC, NFS
+```
+
+### 3. Summary
+
+A clean list of only the valid credentials:
+
+```
+  ✓ VALID CREDENTIALS
+
+    ► SMB (domain)         │ corp.local\admin:Password123!
+    ► LDAP (domain)        │ corp.local\admin:Password123!
+```
+
+## Configuration
+
+Constants at the top of the script:
+
+| Constant | Value | Description |
+|----------|-------|-------------|
+| `MAX_RETRY` | `2` | Consecutive timeouts before skipping a protocol |
+| `NETEXEC_TIMEOUT` | `30` | nxc `--timeout` per connection attempt (seconds) |
+| `SUBPROCESS_TIMEOUT` | `45` | Python-level safety timeout per nxc command (seconds) |
+| `DEFAULT_WORKERS` | `15` | Thread pool size (10 protocols + 5 local auth) |
+
+## Disclaimer
+
+This tool is intended for authorized penetration testing and security assessments only. Always ensure you have explicit written permission before testing credentials against any target. Unauthorized access to computer systems is illegal.
