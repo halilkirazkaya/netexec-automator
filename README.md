@@ -1,19 +1,22 @@
 # NetExec Automator
 
-**NetExec Automator** takes your targets, users, and passwords (single values or files) and blasts them across all 10 nxc protocols in parallel — with local auth variants included. You get live hits as they come in, automatic timeout skipping, and a clean summary at the end.
+**NetExec Automator** takes your targets, users, and passwords (single values or files) and blasts them across all 10 nxc protocols in parallel — with local auth variants included. Choose between **combination** (all user×password pairs) or **linear** (index-matched pairs) credential pairing. You get live hits as they come in, automatic timeout skipping, and a clean summary at the end.
 
 ![NetExec Automator Demo](assets/netexec-automator-demo.gif)
 
 **Workflow: find creds → add to lists → re-scan → repeat.**
 
 ```bash
-# Initial scan with known creds
+# Initial scan with known creds (combination mode — all user×password pairs)
 python3 netexec-automator.py -t targets.txt -u users.txt -p passwords.txt
 
 # Found svc_backup:Summer2025! in a config file? Add it and re-scan
 echo 'svc_backup' >> users.txt
 echo 'Summer2025!' >> passwords.txt
 python3 netexec-automator.py -t targets.txt -u users.txt -p passwords.txt
+
+# Have known user:password pairs? Use linear mode (1-to-1 index matching)
+python3 netexec-automator.py -t targets.txt -u users.txt -p passwords.txt -m linear
 
 # Got a new subnet? Add those targets and go again
 echo '10.10.20.0/24' >> targets.txt
@@ -24,6 +27,7 @@ python3 netexec-automator.py -t targets.txt -u users.txt -p passwords.txt
 
 - **10 protocols** — SMB, SSH, LDAP, FTP, WMI, WinRM, RDP, VNC, MSSQL, NFS
 - **Local auth variants** — Automatically tests `--local-auth` for SMB, WMI, WinRM, RDP, MSSQL
+- **Credential pairing modes** — `combination` (cartesian product, default) or `linear` (index-matched 1-to-1 pairs)
 - **Parallel execution** — 15 concurrent workers by default (one per protocol/auth-type)
 - **Live findings** — Valid credentials (`⚡`) and timeout skips (`⏱`) printed in real-time
 - **Auto-skip** — Protocols that timeout consecutively are skipped to save time
@@ -45,6 +49,9 @@ python3 netexec-automator.py -t 10.10.10.1 -u admin -p 'Password123!'
 # File-based inputs — the intended workflow
 python3 netexec-automator.py -t targets.txt -u users.txt -p passwords.txt
 
+# Linear mode — each user[i] paired only with password[i]
+python3 netexec-automator.py -t targets.txt -u users.txt -p passwords.txt -m linear
+
 # Custom output file and worker count
 python3 netexec-automator.py -t 10.10.10.1 -u admin -p pass.txt -o results.txt -w 20
 ```
@@ -58,6 +65,7 @@ python3 netexec-automator.py -t 10.10.10.1 -u admin -p pass.txt -o results.txt -
 | `-p, --password` | Password or path to passwords file | *required* |
 | `-o, --output` | Custom log file path | `HH-MM-SS-mmm.txt` |
 | `-w, --workers` | Number of parallel threads | `15` |
+| `-m, --mode` | Credential pairing: `combination` (all pairs) or `linear` (index-matched) | `combination` |
 
 ## Output
 
@@ -103,6 +111,15 @@ A clean list of only the valid credentials:
     ► SMB (domain)         │ corp.local\admin:Password123!
     ► LDAP (domain)        │ corp.local\admin:Password123!
 ```
+
+## Credential Pairing Modes
+
+| Mode | Behavior | Example (2 users, 3 passwords) |
+|------|----------|-------------------------------|
+| `combination` | Cartesian product — every user tested with every password | 2 × 3 = **6 pairs** |
+| `linear` | Index-matched — user[i] paired only with password[i] (lists must be equal length) | **not allowed** (lengths differ) |
+
+**combination** (default) is ideal when you have separate wordlists. **linear** is useful when you have known `user:password` pairs (e.g. from a credential dump) and want to test each pair as-is.
 
 ## Configuration
 
