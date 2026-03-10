@@ -21,7 +21,7 @@ ALL_PROTOCOLS = ["smb", "ssh", "ldap", "ftp", "wmi", "winrm", "rdp", "vnc", "mss
 LOCAL_AUTH_PROTOCOLS = {"smb", "wmi", "winrm", "rdp", "mssql"}
 
 DEFAULT_WORKERS = len(ALL_PROTOCOLS) + len(LOCAL_AUTH_PROTOCOLS)
-MAX_RETRY = 2
+MAX_RETRY = 3
 SUBPROCESS_TIMEOUT = 45
 NETEXEC_TIMEOUT = 30
 BANNER_WIDTH = 60
