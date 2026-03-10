@@ -30,7 +30,7 @@ python3 netexec-automator.py -t targets.txt -u users.txt -p passwords.txt
 - **Credential pairing modes** — `combination` (cartesian product, default) or `linear` (index-matched 1-to-1 pairs)
 - **Parallel execution** — 15 concurrent workers by default (one per protocol/auth-type)
 - **Live findings** — Valid credentials (`⚡`) and timeout skips (`⏱`) printed in real-time
-- **Auto-skip** — Protocols that timeout consecutively are skipped to save time
+- **Auto-skip** — Protocols with consecutive connectivity timeouts are skipped to save time
 - **Clean output** — Parsed nxc output, grouped by protocol, with a final credential summary
 - **Progress bar** — Real-time tracking per individual nxc command
 - **File input** — Accepts single values or newline-separated files for targets, users, and passwords
@@ -80,7 +80,7 @@ Findings appear in real-time as protocols are tested:
 
   ⚡ SMB (domain) corp.local\admin:Password123!
   ⚡ LDAP (domain) corp.local\admin:Password123!
-  ⏱ SSH (domain) 2 consecutive timeouts — skipping
+  ⏱ SSH (domain) 3 consecutive timeouts — skipping
 ```
 
 ### 2. Detailed Results
@@ -96,7 +96,7 @@ After scanning completes, all results are shown grouped by protocol:
   ✔ SMB (domain)         corp.local\admin:Password123!
   ✘ SMB (local)          DC01\admin:Password123! STATUS_LOGON_FAILURE
   ✔ LDAP (domain)        corp.local\admin:Password123!
-  ⏱ SSH (domain)         2 consecutive timeouts — skipped
+  ⏱ SSH (domain)         3 consecutive timeouts — skipped
 
   ── No response: FTP, VNC, NFS
 ```
@@ -127,7 +127,7 @@ Constants at the top of the script:
 
 | Constant | Value | Description |
 |----------|-------|-------------|
-| `MAX_RETRY` | `2` | Consecutive timeouts before skipping a protocol |
+| `MAX_RETRY` | `3` | Consecutive connectivity timeouts before skipping a protocol |
 | `NETEXEC_TIMEOUT` | `30` | nxc `--timeout` per connection attempt (seconds) |
 | `SUBPROCESS_TIMEOUT` | `45` | Python-level safety timeout per nxc command (seconds) |
 | `DEFAULT_WORKERS` | `15` | Thread pool size (10 protocols + 5 local auth) |
